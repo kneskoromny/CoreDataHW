@@ -8,9 +8,9 @@
 import UIKit
 import CoreData
 
-protocol TaskViewControllereDelegate {
-    func reloadData()
-}
+//protocol TaskViewControllereDelegate {
+//    func reloadData()
+//}
 
 class TaskListViewController: UITableViewController {
     
@@ -120,9 +120,9 @@ extension TaskListViewController {
 }
 
 // MARK: - TaskViewControllereDelegate
-extension TaskListViewController: TaskViewControllereDelegate {
-    func reloadData() {
-        fetchData()
-        tableView.reloadData()
-    }
-}
+//extension TaskListViewController: TaskViewControllereDelegate {
+//    func reloadData() {
+//        fetchData()
+//        tableView.reloadData()
+//    }
+//}
