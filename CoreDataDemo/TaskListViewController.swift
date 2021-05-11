@@ -14,8 +14,12 @@ import CoreData
 
 class TaskListViewController: UITableViewController {
     
-    private let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    // добавил в сторадж
+//    private let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    
     private let cellID = "cell"
+    
+    // добавил в сторадж
     private var taskList: [Task] = []
 
     override func viewDidLoad() {
@@ -23,7 +27,8 @@ class TaskListViewController: UITableViewController {
         view.backgroundColor = .white
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
         setupNavigationBar()
-        fetchData()
+//        fetchData()
+        taskList = StorageManager.shared.fetchData()
     }
 
     private func setupNavigationBar() {
@@ -59,21 +64,25 @@ class TaskListViewController: UITableViewController {
         showAlert(with: "New Task", and: "What do you want to do?")
     }
     
-    private func fetchData() {
-        let fetchRequest: NSFetchRequest<Task> = Task.fetchRequest()
-        
-        do {
-            taskList = try context.fetch(fetchRequest)
-        } catch let error {
-            print(error)
-        }
-    }
+    // перенес в сторадж
+//    private func fetchData() {
+//        let fetchRequest: NSFetchRequest<Task> = Task.fetchRequest()
+//
+//        do {
+//            taskList = try context.fetch(fetchRequest)
+//        } catch let error {
+//            print(error)
+//        }
+//    }
     
     private func showAlert(with title: String, and message: String) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
             guard let task = alert.textFields?.first?.text, !task.isEmpty else { return }
-            self.save(task)
+//            self.save(task)
+
+            self.save(taskName: task)
+            print(self.taskList)
         }
         let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
         alert.addAction(saveAction)
@@ -84,23 +93,33 @@ class TaskListViewController: UITableViewController {
         present(alert, animated: true)
     }
     
-    private func save(_ taskName: String) {
-        guard let entityDescription = NSEntityDescription.entity(forEntityName: "Task", in: context) else { return }
-        guard let task = NSManagedObject(entity: entityDescription, insertInto: context) as? Task else { return }
-        task.title = taskName
-        taskList.append(task)
+    private func save(taskName: String) {
+        StorageManager.shared.save(taskName)
+        taskList = StorageManager.shared.fetchData()
         
         let cellIndex = IndexPath(row: taskList.count - 1, section: 0)
         tableView.insertRows(at: [cellIndex], with: .automatic)
-        
-        if context.hasChanges {
-            do {
-                try context.save()
-            } catch let error {
-                print(error.localizedDescription)
-            }
-        }
+
     }
+    
+    // перенес в сторадж
+//    private func save(_ taskName: String) {
+//        guard let entityDescription = NSEntityDescription.entity(forEntityName: "Task", in: context) else { return }
+//        guard let task = NSManagedObject(entity: entityDescription, insertInto: context) as? Task else { return }
+//        task.title = taskName
+//        taskList.append(task)
+//
+//        let cellIndex = IndexPath(row: taskList.count - 1, section: 0)
+//        tableView.insertRows(at: [cellIndex], with: .automatic)
+//
+//        if context.hasChanges {
+//            do {
+//                try context.save()
+//            } catch let error {
+//                print(error.localizedDescription)
+//            }
+//        }
+//    }
 }
 
 // MARK: - UITableViewDataSource
