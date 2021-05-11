@@ -20,6 +20,8 @@ class TaskListViewController: UITableViewController {
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
         setupNavigationBar()
         taskList = StorageManager.shared.fetchData()
+        
+        print("VDD \(StorageManager.shared.taskList.count)")
     }
 
     private func setupNavigationBar() {
@@ -56,10 +58,12 @@ class TaskListViewController: UITableViewController {
     }
     
     private func showAlert(with title: String, and message: String) {
+        
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
             guard let task = alert.textFields?.first?.text, !task.isEmpty else { return }
             self.save(taskName: task)
+            
         }
         
         let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
@@ -67,6 +71,7 @@ class TaskListViewController: UITableViewController {
         alert.addAction(cancelAction)
         alert.addTextField { textField in
             textField.placeholder = "New Task"
+            
         }
         present(alert, animated: true)
     }
@@ -77,7 +82,29 @@ class TaskListViewController: UITableViewController {
         
         let cellIndex = IndexPath(row: taskList.count - 1, section: 0)
         tableView.insertRows(at: [cellIndex], with: .automatic)
+        print("SAVE \(StorageManager.shared.taskList.count)")
 
+    }
+    
+    private func edit(index: Int) {
+        
+        let alert = UIAlertController(title: "Edit", message: "What do you want to edit?", preferredStyle: .alert)
+        let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
+            guard let task = alert.textFields?.first?.text, !task.isEmpty else { return }
+            
+            print("EDIT \(StorageManager.shared.taskList.count)")
+            
+            
+        }
+        
+        let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
+        alert.addAction(saveAction)
+        alert.addAction(cancelAction)
+        alert.addTextField { textField in
+            textField.text = self.taskList[index].title
+            
+        }
+        present(alert, animated: true)
     }
 }
 
@@ -106,22 +133,46 @@ extension TaskListViewController {
         if editingStyle == .delete {
             
             
-//            StorageManager.shared.delete(indexPath.row)
+            StorageManager.shared.delete(indexPath.row)
             
-            let itemToDelete = taskList[indexPath.row]
-            StorageManager.shared.context.delete(itemToDelete)
-
-            if StorageManager.shared.context.hasChanges {
-                do {
-                    try StorageManager.shared.context.save()
-
-                } catch let error {
-                    print(error.localizedDescription)
-                }
-            }
+//            let itemToDelete = taskList[indexPath.row]
+//            StorageManager.shared.context.delete(itemToDelete)
+//
+//            if StorageManager.shared.context.hasChanges {
+//                do {
+//                    try StorageManager.shared.context.save()
+//
+//                } catch let error {
+//                    print(error.localizedDescription)
+//                }
+//            }
             taskList = StorageManager.shared.fetchData()
             tableView.deleteRows(at: [indexPath], with: .left)
+            print("DELETE \(StorageManager.shared.taskList.count)")
         }
     }
-}
+    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    
+        let alert = UIAlertController(title: "Edit", message: "What do you want to edit?", preferredStyle: .alert)
+        let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
+            guard let task = alert.textFields?.first?.text, !task.isEmpty else { return }
+            
+            StorageManager.shared.edit(taskString: task, index: indexPath.row)
+//            self.taskList = StorageManager.shared.fetchData()
+            self.tableView.reloadData()
+        
+        }
+        
+        let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
+        alert.addAction(saveAction)
+        alert.addAction(cancelAction)
+        alert.addTextField { textField in
+            textField.text = self.taskList[indexPath.row].title
+            
+        }
+        present(alert, animated: true)
+    }
+    }
+
 

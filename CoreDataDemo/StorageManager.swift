@@ -25,7 +25,8 @@ class StorageManager {
     
     lazy var context = persistentContainer.viewContext
     
-    private var taskList: [Task] = []
+//    private var taskList: [Task] = []
+    lazy var taskList = fetchData()
     
     private init() {}
     
@@ -56,22 +57,36 @@ class StorageManager {
             }
         }
     }
+    func edit(taskString: String, index: Int) {
+        let task = taskList[index]
+        task.title = taskString
+        
+        if context.hasChanges {
+            do {
+                try context.save()
+            } catch let error {
+                print(error.localizedDescription)
+            }
+        }
+    }
+    
     
     // подумать как сделать делегата
-//    func delete(_ index: Int) {
-//
-//        let itemToDelete = taskList[index]
-//        context.delete(itemToDelete)
-//
-//        if context.hasChanges {
-//            do {
-//                try context.save()
-//
-//            } catch let error {
-//                print(error.localizedDescription)
-//            }
-//        }
-//    }
+    func delete(_ index: Int) {
+
+        let itemToDelete = taskList[index]
+        context.delete(itemToDelete)
+        taskList.remove(at: index)
+
+        if context.hasChanges {
+            do {
+                try context.save()
+
+            } catch let error {
+                print(error.localizedDescription)
+            }
+        }
+    }
     
     func fetchData() -> [Task] {
         let fetchRequest: NSFetchRequest<Task> = Task.fetchRequest()
