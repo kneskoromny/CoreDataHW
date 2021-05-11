@@ -57,6 +57,22 @@ class StorageManager {
         }
     }
     
+    // подумать как сделать делегата
+//    func delete(_ index: Int) {
+//
+//        let itemToDelete = taskList[index]
+//        context.delete(itemToDelete)
+//
+//        if context.hasChanges {
+//            do {
+//                try context.save()
+//
+//            } catch let error {
+//                print(error.localizedDescription)
+//            }
+//        }
+//    }
+    
     func fetchData() -> [Task] {
         let fetchRequest: NSFetchRequest<Task> = Task.fetchRequest()
         

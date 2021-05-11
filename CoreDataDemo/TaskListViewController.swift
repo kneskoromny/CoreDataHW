@@ -95,5 +95,33 @@ extension TaskListViewController {
         cell.contentConfiguration = content
         return cell
     }
+    
+    // метод, возвращающий способ редактирования ячейки при нажатии edit
+    override func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
+        return .delete
+    }
+    
+    // метод, назначающий действия про определнном editing style выше
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            
+            
+//            StorageManager.shared.delete(indexPath.row)
+            
+            let itemToDelete = taskList[indexPath.row]
+            StorageManager.shared.context.delete(itemToDelete)
+
+            if StorageManager.shared.context.hasChanges {
+                do {
+                    try StorageManager.shared.context.save()
+
+                } catch let error {
+                    print(error.localizedDescription)
+                }
+            }
+            taskList = StorageManager.shared.fetchData()
+            tableView.deleteRows(at: [indexPath], with: .left)
+        }
+    }
 }
 
