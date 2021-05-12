@@ -72,7 +72,7 @@ class StorageManager {
         let itemToDelete = taskList[index]
         context.delete(itemToDelete)
         taskList.remove(at: index)
-
+        
         saveContext()
     }
     

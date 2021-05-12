@@ -14,7 +14,7 @@ class TaskListViewController: UITableViewController {
     private let cellID = "cell"
     
     private var taskList: [Task] = []
-
+    
     // MARK: - Override methods
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -22,9 +22,6 @@ class TaskListViewController: UITableViewController {
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
         setupNavigationBar()
         taskList = StorageManager.shared.fetchData()
-        
-        //delete
-        print("VDD \(StorageManager.shared.taskList.count)")
     }
     
     // MARK: - Private methods
@@ -102,9 +99,6 @@ class TaskListViewController: UITableViewController {
         
         let cellIndex = IndexPath(row: taskList.count - 1, section: 0)
         tableView.insertRows(at: [cellIndex], with: .automatic)
-        
-        //delete
-        print("SAVE \(StorageManager.shared.taskList.count)")
     }
     
     private func delete(index: Int) {
@@ -115,10 +109,7 @@ class TaskListViewController: UITableViewController {
     private func edit(task: String, index: Int) {
         StorageManager.shared.edit(taskString: task, index: index)
         self.tableView.reloadData()
-        
-        //delete
-        print("EDIT \(StorageManager.shared.taskList.count)")
-}
+    }
 }
 
 // MARK: - UITableViewDataSource
@@ -144,9 +135,6 @@ extension TaskListViewController {
         if editingStyle == .delete {
             delete(index: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .left)
-            
-            //delete
-            print("DELETE \(StorageManager.shared.taskList.count)")
         }
     }
     
