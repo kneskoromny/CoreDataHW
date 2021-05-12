@@ -25,14 +25,12 @@ class StorageManager {
     
     lazy var context = persistentContainer.viewContext
     
-//    private var taskList: [Task] = []
     lazy var taskList = fetchData()
     
     private init() {}
     
     // MARK: - Core Data Saving support
-    func saveContext() {
-        let context = persistentContainer.viewContext
+    func saveContextFatalError() {
         if context.hasChanges {
             do {
                 try context.save()
@@ -43,49 +41,39 @@ class StorageManager {
         }
     }
     
+    func saveContext() {
+        if context.hasChanges {
+            do {
+                try context.save()
+            } catch let error {
+                print(error.localizedDescription)
+            }
+        }
+    }
+    
+    // MARK: - Public methods
     func save(_ taskName: String) {
         guard let entityDescription = NSEntityDescription.entity(forEntityName: "Task", in: context) else { return }
         guard let task = NSManagedObject(entity: entityDescription, insertInto: context) as? Task else { return }
         task.title = taskName
         taskList.append(task)
         
-        if context.hasChanges {
-            do {
-                try context.save()
-            } catch let error {
-                print(error.localizedDescription)
-            }
-        }
+        saveContext()
     }
+    
     func edit(taskString: String, index: Int) {
         let task = taskList[index]
         task.title = taskString
         
-        if context.hasChanges {
-            do {
-                try context.save()
-            } catch let error {
-                print(error.localizedDescription)
-            }
-        }
+        saveContext()
     }
     
-    
-    // подумать как сделать делегата
     func delete(_ index: Int) {
-
         let itemToDelete = taskList[index]
         context.delete(itemToDelete)
         taskList.remove(at: index)
 
-        if context.hasChanges {
-            do {
-                try context.save()
-
-            } catch let error {
-                print(error.localizedDescription)
-            }
-        }
+        saveContext()
     }
     
     func fetchData() -> [Task] {
