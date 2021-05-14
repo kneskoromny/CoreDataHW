@@ -13,7 +13,7 @@ class StorageManager {
     static let shared = StorageManager()
     
     // MARK: - Core Data stack
-    let persistentContainer: NSPersistentContainer = {
+    private let persistentContainer: NSPersistentContainer = {
         let container = NSPersistentContainer(name: "CoreDataDemo")
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             if let error = error as NSError? {
@@ -23,17 +23,18 @@ class StorageManager {
         return container
     }()
     
-    lazy var context = persistentContainer.viewContext
-    
-    lazy var taskList = fetchData()
+    // свойство viewcontext == база данных
+    private var viewContext: NSManagedObjectContext {
+        persistentContainer.viewContext }
     
     private init() {}
     
     // MARK: - Core Data Saving support
-    func saveContextFatalError() {
-        if context.hasChanges {
+    // метод сохраняет базу данных
+    func saveContext() {
+        if viewContext.hasChanges {
             do {
-                try context.save()
+                try viewContext.save()
             } catch {
                 let nserror = error as NSError
                 fatalError("Unresolved error \(nserror), \(nserror.userInfo)")
@@ -41,50 +42,48 @@ class StorageManager {
         }
     }
     
-    func saveContext() {
-        if context.hasChanges {
-            do {
-                try context.save()
-            } catch let error {
-                print(error.localizedDescription)
-            }
-        }
-    }
-    
     // MARK: - Public methods
-    func save(_ taskName: String) {
-        guard let entityDescription = NSEntityDescription.entity(forEntityName: "Task", in: context) else { return }
-        guard let task = NSManagedObject(entity: entityDescription, insertInto: context) as? Task else { return }
+    // сохраняем объект в базе данных, в completion происходит захват задачи для дальнейшей передачи в контроллер
+    func save(_ taskName: String, completion: (Task) -> Void) {
+        // создание экземпляра модели через entitydescription более надежный
+//        guard let entityDescription = NSEntityDescription.entity(forEntityName: "Task", in: viewContext) else { return }
+//        guard let task = NSManagedObject(entity: entityDescription, insertInto: viewContext) as? Task else { return }
+        
+        // создание экземпляра модели через инициализатор менее надежный
+        let task = Task(context: viewContext)
         task.title = taskName
-        taskList.append(task)
+        
+        // захватываем тип данных
+        completion(task)
+        saveContext()
+    }
+    
+    func edit(_ task: Task, newName: String) {
+        // присваиваем новое имя для задачи
+        task.title = newName
         
         saveContext()
     }
     
-    func edit(taskString: String, index: Int) {
-        let task = taskList[index]
-        task.title = taskString
+    func delete(_ task: Task) {
+        // удаляем объект из базы
+        viewContext.delete(task)
         
         saveContext()
     }
     
-    func delete(_ index: Int) {
-        let itemToDelete = taskList[index]
-        context.delete(itemToDelete)
-        taskList.remove(at: index)
-        
-        saveContext()
-    }
-    
-    func fetchData() -> [Task] {
+    // захватываем данные из базы данных для дальнейшей передачи
+    func fetchData(completion: (Result<[Task], Error>) -> Void)  {
+        // формируем запрос
         let fetchRequest: NSFetchRequest<Task> = Task.fetchRequest()
         
         do {
-            let tasks = try context.fetch(fetchRequest)
-            return tasks
+            // загружаем базу в массив
+            let tasks = try viewContext.fetch(fetchRequest)
+            // захватываем массив для дальнейшей передачи его в контроллере
+            completion(.success(tasks))
         } catch let error {
-            print(error)
+            completion(.failure(error))
         }
-        return []
     }
 }
