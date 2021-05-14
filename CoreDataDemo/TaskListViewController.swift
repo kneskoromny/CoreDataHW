@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import CoreData
 
 class TaskListViewController: UITableViewController {
     
@@ -21,7 +20,8 @@ class TaskListViewController: UITableViewController {
         view.backgroundColor = .white
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
         setupNavigationBar()
-        taskList = StorageManager.shared.fetchData()
+        // загружаем данные из базы для обновления контроллера
+        fetchData()
     }
     
     // MARK: - Private methods
@@ -55,60 +55,32 @@ class TaskListViewController: UITableViewController {
     }
     
     @objc private func addNewTask() {
-        showAlertForSave(with: "New Task", and: "What do you want to do?")
+        showAlert()
     }
     
-    private func showAlertForSave(with title: String, and message: String) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
-            guard let task = alert.textFields?.first?.text, !task.isEmpty else { return }
-            self.save(taskName: task)
+
+    // обновляем данные из базы, получаем массив
+    private func fetchData() {
+        StorageManager.shared.fetchData { result in
+            switch result {
+            // передаем базу в массив контроллера
+            case .success(let tasks):
+                self.taskList = tasks
+            case .failure(let error):
+                print(error)
+            }
         }
-        
-        let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
-        alert.addAction(saveAction)
-        alert.addAction(cancelAction)
-        alert.addTextField { textField in
-            textField.placeholder = "New Task"
-            
-        }
-        present(alert, animated: true)
     }
-    
-    private func showAlertForEdit(index: Int) {
-        let alert = UIAlertController(title: "Edit", message: "Let's edit it!", preferredStyle: .alert)
-        let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
-            guard let task = alert.textFields?.first?.text, !task.isEmpty else { return }
-            self.edit(task: task, index: index)
-        }
-        
-        let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
-        alert.addAction(saveAction)
-        alert.addAction(cancelAction)
-        alert.addTextField { textField in
-            textField.text = self.taskList[index].title
-            
-        }
-        present(alert, animated: true)
-        
-    }
-    
+    // метод создает новую задачу по имени и возвращает захваченное значение
     private func save(taskName: String) {
-        StorageManager.shared.save(taskName)
-        taskList = StorageManager.shared.fetchData()
-        
-        let cellIndex = IndexPath(row: taskList.count - 1, section: 0)
-        tableView.insertRows(at: [cellIndex], with: .automatic)
-    }
-    
-    private func delete(index: Int) {
-        StorageManager.shared.delete(index)
-        taskList = StorageManager.shared.fetchData()
-    }
-    
-    private func edit(task: String, index: Int) {
-        StorageManager.shared.edit(taskString: task, index: index)
-        self.tableView.reloadData()
+        StorageManager.shared.save(taskName) { task in
+            // добавляет задачу в массив контроллера
+            self.taskList.append(task)
+            // создаем индекс для новой строки
+            let cellIndex = IndexPath(row: taskList.count - 1, section: 0)
+            // добавляем строку по индексу
+            tableView.insertRows(at: [cellIndex], with: .automatic)
+        }
     }
 }
 
@@ -126,20 +98,64 @@ extension TaskListViewController {
         cell.contentConfiguration = content
         return cell
     }
-    
-    override func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
-        return .delete
-    }
-    
+    // MARK: - UITableViewDelegate
+    // удаляем задачу
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        // получаем элемент массива по индексу и определяем задачу для удаления из базы
+        let task = taskList[indexPath.row]
+        
         if editingStyle == .delete {
-            delete(index: indexPath.row)
-            tableView.deleteRows(at: [indexPath], with: .left)
+            //удаляем из массива в контроллере
+            taskList.remove(at: indexPath.row)
+            // удаляем строку с задачей
+            tableView.deleteRows(at: [indexPath], with: .automatic)
+            // удаляем из базы данных
+            StorageManager.shared.delete(task)
+            
         }
     }
-    
+    // редактируем задачу
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        showAlertForEdit(index: indexPath.row)
+        // снимает выделение с ячейки
+        tableView.deselectRow(at: indexPath, animated: true)
+        // получаем элемент массива по индексу
+        let task = taskList[indexPath.row]
+        // вызываем кастомный алертконтроллер и в completion добавляем действие для обновления интерфейса
+        showAlert(task: task) {
+            tableView.reloadRows(at: [indexPath], with: .automatic)
+        }
+        
+    }
+}
+// MARK: - AlertController
+extension TaskListViewController {
+    
+    // инициализаторы с параметрами по умолчанию нужны для использования одного алерта в разных ситуациях, а completion позволит добавить действие после вызова
+    private func showAlert(task: Task? = nil, completion: (() -> Void)? = nil) {
+        // если инициализатор не пустой, то хотим редактировать задачу, иначе - новая задача, заголовок для контроллера
+        let title = task != nil ? "Update Task" : "New Task"
+        
+        //создаем экземпляр контроллера
+        let alert = AlertController(
+            title: title,
+            message: "What do you want?",
+            preferredStyle: .alert
+        )
+        // в completion возвращается то, что внес пользователь и передаем его или в edit или в save
+        alert.action(task: task) { taskName in
+            // если параметры заполнены, то редактируем
+            if let task = task, let completion = completion {
+                // вызываем метод для редактирования
+                StorageManager.shared.edit(task, newName: taskName)
+                // пустой completion для дальнейшего обновления нтерфейса
+                completion()
+            } else {
+                // если параметров в инициализаторе нет, то добавляем новую задачу
+                self.save(taskName: taskName)
+            }
+        }
+        present(alert, animated: true)
+        
     }
 }
 
